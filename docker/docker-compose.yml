@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+    nginx:
+        image: nginx:1.23.3
+        container_name: file-storage-nginx-server
+        restart: unless-stopped
+        volumes:
+            - ../:/var/www
+            - ./config/nginx/conf.d:/etc/nginx/conf.d
+        ports:
+            - ${NGINX_PORT:-8876}:80
+        depends_on:
+            - app
+        networks:
+            file-storage-network:
+    pgsql-db:
+        image: postgres:15.1
+        container_name: file-storage-pgsql-db
+        restart: unless-stopped
+        volumes:
+            - ./init/pgsql:/docker-entrypoint-initdb.d
+            - file-storage-pgsql:/var/lib/postgresql/data
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-file-storage}
+            POSTGRES_USER: ${POSTGRES_USER:-file_storage_admin}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-TXIo0BuJtFYwzclTXIo0BuJtFYwzcl}
+        ports:
+            - ${POSTGRES_PORT:-25438}:5432
+        networks:
+            file-storage-network:
+    app:
+        build:
+            context: .
+        container_name: file-storage-app
+        volumes:
+            - ../:/var/www
+        restart: unless-stopped
+        depends_on:
+            - pgsql-db
+        networks:
+            file-storage-network:
+
+volumes:
+    file-storage-pgsql:
+
+networks:
+    file-storage-network:
+        driver: bridge
